@@ -1,7 +1,4 @@
 # ZeroRot
-Absolutely. Since the project is now called **ZeroRot**, here is a professional `README.md` you can directly place in your GitHub repository.
-
-# ZeroRot
 
 ### Solar-Powered Smart Mini Cold Storage System for Fresh Vegetables
 
