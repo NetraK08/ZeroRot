@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ZeroRot — Smart Cold Storage</title>
+  <style>
+    :root {
+      --forest: #163f35;
+      --forest-2: #245c4d;
+      --sage: #a9c3a2;
+      --sage-soft: #e8f0e5;
+      --cream: #f5f3ec;
+      --paper: #fffefa;
+      --ink: #1d2c28;
+      --muted: #75827b;
+      --line: #e3e9e1;
+      --teal: #2b9c93;
+      --blue: #5e9fd4;
+      --amber: #d6983e;
+      --red: #c8584b;
+      --shadow: 0 18px 50px rgba(33, 69, 54, .07);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--cream);
+      font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button { font: inherit; }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 244px;
+      flex: 0 0 244px;
+      display: flex;
+      flex-direction: column;
+      padding: 25px 16px 18px;
+      color: #e7f2e9;
+      background: var(--forest);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 12px 30px; }
+    .brand-mark {
+      width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px;
+      color: var(--forest); background: #c9ddb9;
+      box-shadow: inset 0 0 0 4px rgba(255,255,255,.13);
+    }
+    .brand-name { font-size: 18px; letter-spacing: -.04em; font-weight: 750; }
+    .brand-sub { margin-top: 1px; color: #a9c6b2; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    .nav-label { padding: 0 12px 10px; color: #87aa98; font-size: 10px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+    .nav { display: grid; gap: 5px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px;
+      border: 0; border-radius: 10px; color: #b9d1bf; background: transparent; text-align: left; cursor: pointer;
+      transition: .18s ease;
+    }
+    .nav-item:hover { color: white; background: rgba(255,255,255,.08); }
+    .nav-item.active { color: white; background: #2b5e50; box-shadow: inset 3px 0 #bfd7aa; }
+    .nav-item svg { width: 17px; height: 17px; opacity: .85; }
+    .sidebar-bottom { margin-top: auto; }
+    .offline-card {
+      padding: 14px; border: 1px solid rgba(193, 225, 195, .16); border-radius: 14px;
+      background: rgba(255,255,255,.055);
+    }
+    .offline-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .offline-title { font-size: 12px; font-weight: 700; }
+    .dot { width: 7px; height: 7px; display: inline-block; border-radius: 50%; background: #8bd1b0; box-shadow: 0 0 0 4px rgba(139, 209, 176, .12); }
+    .offline-copy { color: #9dbca6; font-size: 11px; }
+    .sync-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; color: #d6ead5; font-size: 11px; }
+    .sync-progress { height: 4px; overflow: hidden; margin-top: 8px; border-radius: 4px; background: rgba(255,255,255,.12); }
+    .sync-progress span { display: block; width: 100%; height: 100%; background: #92c8a5; border-radius: inherit; }
+    .workspace-note { padding: 18px 12px 0; color: #719482; font-size: 10px; }
+    .main { min-width: 0; flex: 1; padding: 28px 34px 35px; }
+    .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 25px; }
+    .eyebrow { color: var(--forest-2); font-size: 11px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 5px 0 5px; color: var(--forest); font-size: clamp(25px, 3vw, 34px); line-height: 1.1; letter-spacing: -.055em; }
+    .subline { color: var(--muted); }
+    .top-actions { display: flex; align-items: center; gap: 12px; }
+    .date-pill, .icon-btn {
+      display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+      color: var(--forest-2); background: rgba(255,255,255,.55);
+    }
+    .icon-btn { width: 38px; justify-content: center; cursor: pointer; }
+    .avatar { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 50%; color: var(--forest); background: var(--sage); font-size: 12px; font-weight: 800; }
+    .overview-strip { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 18px; }
+    .strip-title { color: var(--forest); font-size: 16px; font-weight: 750; letter-spacing: -.02em; }
+    .unit-status { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid #d8e8d5; border-radius: 30px; color: #32724e; background: #eff7ed; font-size: 11px; font-weight: 700; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+    .card { border: 1px solid rgba(215, 226, 215, .82); border-radius: 15px; background: var(--paper); box-shadow: var(--shadow); }
+    .metric { position: relative; min-height: 144px; padding: 17px 17px 15px; overflow: hidden; }
+    .metric:after { content: ""; position: absolute; right: -22px; bottom: -32px; width: 100px; height: 100px; border-radius: 50%; background: var(--metric-tint, #edf3e9); opacity: .75; }
+    .metric-head { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: flex-start; }
+    .metric-label { color: var(--muted); font-size: 11px; font-weight: 750; letter-spacing: .03em; }
+    .metric-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; color: var(--metric-color, var(--forest-2)); background: var(--metric-tint, #edf3e9); }
+    .metric-icon svg { width: 17px; height: 17px; }
+    .metric-value { position: relative; z-index: 1; margin-top: 17px; color: var(--forest); font-size: 30px; font-weight: 780; letter-spacing: -.065em; }
+    .metric-value small { margin-left: 3px; color: var(--muted); font-size: 14px; font-weight: 600; letter-spacing: 0; }
+    .metric-foot { position: relative; z-index: 1; display: flex; align-items: center; gap: 5px; margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .trend-up { color: #398a5b; font-weight: 750; }
+    .main-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(290px, .82fr); gap: 16px; margin-top: 16px; }
+    .panel { padding: 20px; }
+    .panel-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .panel-title h2 { margin: 0; color: var(--forest); font-size: 16px; letter-spacing: -.025em; }
+    .panel-title p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+    .select {
+      padding: 7px 25px 7px 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--forest-2); background: white;
+      font-size: 11px; font-weight: 700;
+    }
+    .chart-wrap { height: 232px; margin-top: 21px; }
+    .chart-wrap svg { width: 100%; height: 100%; overflow: visible; }
+    .chart-label { fill: #98a59e; font-size: 10px; }
+    .chart-grid { stroke: #edf1ec; stroke-width: 1; }
+    .chart-area { fill: url(#areaFill); }
+    .chart-line { fill: none; stroke: var(--teal); stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
+    .chart-dot { fill: white; stroke: var(--teal); stroke-width: 2; }
+    .chart-current { fill: var(--teal); }
+    .legend { display: flex; gap: 17px; margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .legend i { width: 7px; height: 7px; display: inline-block; margin: 0 5px 1px 0; border-radius: 50%; background: var(--teal); }
+    .legend i.solar { background: var(--amber); }
+    .status-panel { display: grid; gap: 14px; }
+    .status-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #edf0ea; }
+    .status-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .status-left { display: flex; align-items: center; gap: 11px; }
+    .status-symbol { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: var(--forest-2); background: var(--sage-soft); }
+    .status-symbol svg { width: 16px; height: 16px; }
+    .status-label { color: var(--ink); font-size: 12px; font-weight: 700; }
+    .status-detail { margin-top: 2px; color: var(--muted); font-size: 10px; }
+    .badge { padding: 5px 8px; border-radius: 6px; color: #35784b; background: #eaf5e8; font-size: 10px; font-weight: 800; }
+    .badge.off { color: #9a6b2b; background: #fff3df; }
+    .bottom-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .86fr); gap: 16px; margin-top: 16px; }
+    .alert-list { display: grid; gap: 8px; margin-top: 17px; }
+    .alert { display: flex; align-items: flex-start; gap: 10px; padding: 11px 12px; border: 1px solid #f0e5d1; border-radius: 10px; background: #fffaf1; }
+    .alert.critical { border-color: #efd9d5; background: #fff8f6; }
+    .alert.good { border-color: #dceade; background: #f5fbf4; }
+    .alert-icon { width: 22px; height: 22px; display: grid; place-items: center; flex: 0 0 22px; border-radius: 7px; color: #b47827; background: #fcebc9; }
+    .critical .alert-icon { color: var(--red); background: #f8dfdb; }
+    .good .alert-icon { color: #378151; background: #dcf0dc; }
+    .alert-icon svg { width: 13px; height: 13px; }
+    .alert-text { min-width: 0; }
+    .alert-text strong { display: block; color: var(--ink); font-size: 11px; }
+    .alert-text span { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+    .alert-time { margin-left: auto; white-space: nowrap; color: #aa9882; font-size: 10px; }
+    .future { display: grid; gap: 11px; margin-top: 18px; }
+    .future-item { display: flex; align-items: center; gap: 11px; padding: 10px 11px; border: 1px dashed #d7e0d6; border-radius: 10px; background: #fcfdf9; }
+    .future-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; color: #4b8478; background: #e5f1ec; }
+    .future-icon svg { width: 14px; height: 14px; }
+    .future-item strong { display: block; color: var(--ink); font-size: 11px; }
+    .future-item span { display: block; color: var(--muted); font-size: 10px; }
+    .future-tag { margin-left: auto; padding: 4px 6px; border-radius: 5px; color: #6d8a77; background: #eef4ed; font-size: 9px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    .footer-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 17px; color: var(--muted); font-size: 10px; }
+    .footer-note strong { color: var(--forest-2); }
+    .threshold-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-top: 18px; }
+    .threshold-field { display: flex; flex-direction: column; gap: 6px; font-size: 11px; font-weight: 700; color: var(--muted); }
+    .threshold-field input { padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; color: var(--ink); background: var(--paper); }
+    .save-btn { margin-top: 16px; padding: 10px 16px; border: 0; border-radius: 9px; color: white; background: var(--forest-2); font-weight: 750; font-size: 12px; cursor: pointer; }
+    .save-btn:hover { background: var(--forest); }
+    .power-mix { display: grid; gap: 14px; margin-top: 20px; }
+    .power-row { display: grid; grid-template-columns: 60px 1fr 40px; align-items: center; gap: 10px; font-size: 12px; color: var(--ink); }
+    .power-bar { height: 8px; border-radius: 6px; overflow: hidden; background: #edf1ec; }
+    .power-bar span { display: block; height: 100%; border-radius: inherit; }
+    .alert-filters { display: flex; gap: 6px; }
+    .filter-chip { padding: 7px 12px; border: 1px solid var(--line); border-radius: 30px; color: var(--forest-2); background: rgba(255,255,255,.6); font-size: 11px; font-weight: 700; cursor: pointer; }
+    .filter-chip.active { color: white; background: var(--forest-2); border-color: var(--forest-2); }
+    .toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle span { position: absolute; inset: 0; border-radius: 20px; background: #d7e0d6; transition: .18s; cursor: pointer; }
+    .toggle span:before { content: ""; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: white; transition: .18s; }
+    .toggle input:checked + span { background: var(--forest-2); }
+    .toggle input:checked + span:before { transform: translateX(16px); }
+    .data-table { width: 100%; margin-top: 18px; border-collapse: collapse; font-size: 12px; }
+    .data-table th { padding: 9px 10px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; text-align: left; border-bottom: 1px solid var(--line); }
+    .data-table td { padding: 11px 10px; color: var(--ink); border-bottom: 1px solid #eef2ec; }
+    .data-table tr:last-child td { border-bottom: 0; }
+    @media (max-width: 1040px) {
+      .threshold-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .sidebar { width: 210px; flex-basis: 210px; }
+      .main { padding: 25px 23px 30px; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .main-grid, .bottom-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .app { display: block; }
+      .sidebar { width: auto; min-height: auto; padding: 16px 14px 13px; }
+      .brand { padding: 0 5px 16px; }
+      .nav-label, .sidebar-bottom, .workspace-note { display: none; }
+      .nav { display: flex; overflow-x: auto; gap: 5px; padding-bottom: 2px; }
+      .nav-item { width: auto; flex: 0 0 auto; padding: 9px 10px; }
+      .nav-item span { display: none; }
+      .nav-item.active { box-shadow: inset 0 -3px #bfd7aa; }
+      .main { padding: 22px 15px 28px; }
+      .topbar { align-items: center; }
+      .top-actions .date-pill { display: none; }
+      .top-actions { gap: 7px; }
+      .overview-strip { align-items: flex-start; flex-direction: column; }
+      .metrics { gap: 9px; }
+      .metric { min-height: 137px; padding: 14px; }
+      .metric-value { margin-top: 14px; font-size: 26px; }
+      .panel { padding: 16px; }
+      .chart-wrap { height: 205px; margin-top: 16px; }
+      .footer-note { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 16.5C5.4 10.2 9.1 6.4 17.8 5.7c-.7 8.4-4.5 12.2-10.8 12.6"/><path d="M5.4 18.3c2.4-3.4 5.3-5.6 9-7.1"/></svg>
+        </div>
+        <div><div class="brand-name">ZeroRot</div><div class="brand-sub">Smart storage</div></div>
+      </div>
+      <div class="nav-label">Operations</div>
+      <nav class="nav" aria-label="Main navigation">
+        <button class="nav-item active" data-view="Overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg><span>Overview</span></button>
+        <button class="nav-item" data-view="Environment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v11"/><path d="M8.5 13.4a5 5 0 1 0 7 0c-.9-.9-1.5-1.9-1.5-3.2V5a2 2 0 0 0-4 0v5.2c0 1.3-.6 2.3-1.5 3.2Z"/><path d="M12 17.2v.1"/></svg><span>Environment</span></button>
+        <button class="nav-item" data-view="Energy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4.7 13.2H11L10.5 22 19.3 10.8H13L13 2Z"/></svg><span>Energy</span></button>
+        <button class="nav-item" data-view="Alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg><span>Alerts</span></button>
+        <button class="nav-item" data-view="Storage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m4 8 8-4 8 4-8 4-8-4Z"/><path d="m4 12 8 4 8-4"/><path d="m4 16 8 4 8-4"/></svg><span>Storage</span></button>
+        <button class="nav-item" data-view="System"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-2.6V20a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1A1.7 1.7 0 0 0 8 15a1.7 1.7 0 0 0-1.6-1H6v-2.6h.4A1.7 1.7 0 0 0 8 10a1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.2h2.6V5a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2V14H21a1.7 1.7 0 0 0-1.6 1Z"/></svg><span>System</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="offline-card">
+          <div class="offline-head"><span class="offline-title">Offline data storage</span><span class="dot"></span></div>
+          <div class="offline-copy">Sensor readings are cached locally when the network drops.</div>
+          <div class="sync-row"><span>Sync status</span><strong id="syncText">Up to date</strong></div>
+          <div class="sync-progress"><span id="syncBar"></span></div>
+        </div>
+        <div class="workspace-note">Unit HC-004 · Nandgaon Farm</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow" id="pageEyebrow">Good morning, Nandgaon</div>
+          <h1 id="pageTitle">Cold room overview</h1>
+          <div class="subline" id="pageSubline">A quiet, healthy day for your produce.</div>
+        </div>
+        <div class="top-actions">
+          <div class="date-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>03 Sep 2026</div>
+          <button class="icon-btn" aria-label="Notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg></button>
+          <div class="avatar">NK</div>
+        </div>
+      </header>
+
+      <div class="view" id="view-Overview">
+      <section class="overview-strip">
+        <div class="strip-title" id="viewTitle">Live conditions</div>
+        <div class="unit-status"><span class="dot"></span> System healthy <span style="color:#9bb3a1">·</span> Updated <span id="updated">just now</span></div>
+      </section>
+
+      <section class="metrics" aria-label="Live sensor metrics">
+        <article class="card metric" style="--metric-color:#2b9c93;--metric-tint:#e1f2ee">
+          <div class="metric-head"><div class="metric-label">LIVE TEMPERATURE</div><div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v11"/><path d="M8.5 13.4a5 5 0 1 0 7 0c-.9-.9-1.5-1.9-1.5-3.2V5a2 2 0 0 0-4 0v5.2c0 1.3-.6 2.3-1.5 3.2Z"/></svg></div></div>
+          <div class="metric-value"><span id="temp">4.2</span><small>°C</small></div>
+          <div class="metric-foot"><span class="trend-up">↓ 0.3°</span> vs. last hour</div>
+        </article>
+        <article class="card metric" style="--metric-color:#5e9fd4;--metric-tint:#e7f1f9">
+          <div class="metric-head"><div class="metric-label">LIVE HUMIDITY</div><div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.5S5.5 10.2 5.5 15a6.5 6.5 0 0 0 13 0c0-4.8-6.5-11.5-6.5-11.5Z"/><path d="M9.5 16.5a2.7 2.7 0 0 0 2.7 2.7"/></svg></div></div>
+          <div class="metric-value"><span id="humidity">78</span><small>% RH</small></div>
+          <div class="metric-foot"><span class="trend-up">↑ 1.2%</span> vs. last hour</div>
+        </article>
+        <article class="card metric" style="--metric-color:#4f8b61;--metric-tint:#e7f1e5">
+          <div class="metric-head"><div class="metric-label">BATTERY LEVEL</div><div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="17" height="10" rx="2"/><path d="M21 10v4"/><path d="M6 10h8v4H6z" fill="currentColor" stroke="none"/></svg></div></div>
+          <div class="metric-value"><span id="battery">84</span><small>%</small></div>
+          <div class="metric-foot"><span class="trend-up">↑ 4%</span> charging from solar</div>
+        </article>
+        <article class="card metric" style="--metric-color:#c28732;--metric-tint:#fff1d9">
+          <div class="metric-head"><div class="metric-label">SOLAR POWER</div><div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></div></div>
+          <div class="metric-value"><span id="solar">326</span><small>W</small></div>
+          <div class="metric-foot"><span class="trend-up">↑ 12%</span> from 30 min ago</div>
+        </article>
+      </section>
+
+      <section class="main-grid">
+        <article class="card panel">
+          <div class="panel-title">
+            <div><h2>Temperature history</h2><p>Stable range is between 2°C and 8°C</p></div>
+            <select class="select" id="range"><option>Last 24 hours</option><option>Last 7 days</option><option>Last 30 days</option></select>
+          </div>
+          <div class="chart-wrap">
+            <svg viewBox="0 0 720 250" role="img" aria-label="Temperature history graph">
+              <defs><linearGradient id="areaFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#66c2b2" stop-opacity=".27"/><stop offset="1" stop-color="#66c2b2" stop-opacity="0"/></linearGradient></defs>
+              <g class="chart-grid"><line x1="43" y1="20" x2="700" y2="20"/><line x1="43" y1="67" x2="700" y2="67"/><line x1="43" y1="114" x2="700" y2="114"/><line x1="43" y1="161" x2="700" y2="161"/><line x1="43" y1="208" x2="700" y2="208"/></g>
+              <g class="chart-label"><text x="8" y="24">10°</text><text x="14" y="71">8°</text><text x="14" y="118">6°</text><text x="14" y="165">4°</text><text x="14" y="212">2°</text><text x="42" y="238">06:00</text><text x="203" y="238">10:00</text><text x="366" y="238">14:00</text><text x="529" y="238">18:00</text><text x="667" y="238">Now</text></g>
+              <path class="chart-area" d="M43 145 C78 132 96 150 123 141 S170 119 193 130 S234 162 263 151 S302 133 328 143 S369 174 398 153 S438 128 465 137 S506 152 532 130 S570 101 596 123 S636 157 658 149 S682 153 700 150 L700 208 L43 208Z"/>
+              <path class="chart-line" d="M43 145 C78 132 96 150 123 141 S170 119 193 130 S234 162 263 151 S302 133 328 143 S369 174 398 153 S438 128 465 137 S506 152 532 130 S570 101 596 123 S636 157 658 149 S682 153 700 150"/>
+              <circle class="chart-dot" cx="596" cy="123" r="4"/><circle class="chart-current" cx="700" cy="150" r="4.5"/>
+            </svg>
+          </div>
+          <div class="legend"><span><i></i>Temperature</span><span><i class="solar"></i>Safe storage zone</span></div>
+        </article>
+
+        <article class="card panel">
+          <div class="panel-title"><div><h2>System status</h2><p>Unit HC-004 · Nandgaon Farm</p></div><div class="badge">ONLINE</div></div>
+          <div class="status-panel" style="margin-top:10px">
+            <div class="status-row"><div class="status-left"><div class="status-symbol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v11"/><path d="M8.5 13.4a5 5 0 1 0 7 0c-.9-.9-1.5-1.9-1.5-3.2V5a2 2 0 0 0-4 0v5.2c0 1.3-.6 2.3-1.5 3.2Z"/></svg></div><div><div class="status-label">Compressor</div><div class="status-detail" id="compressorDetail">Maintaining target range</div></div></div><div class="badge" id="compressor">ON</div></div>
+            <div class="status-row"><div class="status-left"><div class="status-symbol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.5S5.5 10.2 5.5 15a6.5 6.5 0 0 0 13 0c0-4.8-6.5-11.5-6.5-11.5Z"/></svg></div><div><div class="status-label">Humidity control</div><div class="status-detail">Within configured range</div></div></div><div class="badge">NORMAL</div></div>
+            <div class="status-row"><div class="status-left"><div class="status-symbol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18h16M6 14h12M8 10h8M10 6h4"/></svg></div><div><div class="status-label">Last sensor sync</div><div class="status-detail">Local cache + cloud</div></div></div><div style="color:#398a5b;font-size:11px;font-weight:800">12 sec ago</div></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="bottom-grid">
+        <article class="card panel">
+          <div class="panel-title"><div><h2>Attention needed</h2><p>Recent updates from your storage unit</p></div><div style="color:var(--forest-2);font-size:11px;font-weight:750;cursor:pointer">View all</div></div>
+          <div class="alert-list">
+            <div class="alert critical"><div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 4 9 16H3L12 4Z"/><path d="M12 9v5M12 17h.01"/></svg></div><div class="alert-text"><strong>High-temperature alert resolved</strong><span>Temperature briefly reached 8.4°C at 05:42.</span></div><div class="alert-time">2h ago</div></div>
+            <div class="alert"><div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="17" height="10" rx="2"/><path d="M21 10v4"/></svg></div><div class="alert-text"><strong>Battery was below 30%</strong><span>Solar charging restored the battery to a healthy level.</span></div><div class="alert-time">Yesterday</div></div>
+            <div class="alert good"><div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg></div><div class="alert-text"><strong>No active power failures</strong><span>Grid-independent operation is available.</span></div><div class="alert-time">All clear</div></div>
+          </div>
+        </article>
+        <article class="card panel">
+          <div class="panel-title"><div><h2>Future features</h2><p>Designed for the next harvest season</p></div><div style="color:#70917c;font-size:10px;font-weight:800;letter-spacing:.08em">ROADMAP</div></div>
+          <div class="future">
+            <div class="future-item"><div class="future-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 4h14v16H5z"/><path d="M8 7h8M8 11h5M8 15h7"/></svg></div><div><strong>4G / SMS alerts</strong><span>Reach the operator wherever they are.</span></div><div class="future-tag">Planned</div></div>
+            <div class="future-item"><div class="future-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M3 20c.5-3.2 2-5 5-5s4.5 1.8 5 5M11 20c.5-3.2 2-5 5-5s4.5 1.8 5 5"/></svg></div><div><strong>Multi-unit management</strong><span>Monitor every cold room in one place.</span></div><div class="future-tag">Planned</div></div>
+            <div class="future-item"><div class="future-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 17.5V20h16v-2.5"/><path d="M7 14.5c1.2-4.3 2.7-6.5 5-6.5s3.8 2.2 5 6.5"/><path d="M12 4v4"/></svg></div><div><strong>Predictive spoilage analysis</strong><span>Spot risk before produce loses value.</span></div><div class="future-tag">Planned</div></div>
+          </div>
+        </article>
+      </section>
+      </div>
+
+      <!-- ================= ENVIRONMENT ================= -->
+      <div class="view" id="view-Environment" style="display:none">
+        <section class="metrics" aria-label="Environment sensor summary">
+          <article class="card metric" style="--metric-color:#2b9c93;--metric-tint:#e1f2ee">
+            <div class="metric-head"><div class="metric-label">CURRENT TEMPERATURE</div></div>
+            <div class="metric-value"><span id="envTemp">4.2</span><small>°C</small></div>
+            <div class="metric-foot">Target range: <span id="envTempRange">2°C – 8°C</span></div>
+          </article>
+          <article class="card metric" style="--metric-color:#5e9fd4;--metric-tint:#e7f1f9">
+            <div class="metric-head"><div class="metric-label">CURRENT HUMIDITY</div></div>
+            <div class="metric-value"><span id="envHumidity">78</span><small>% RH</small></div>
+            <div class="metric-foot">Target range: <span id="envHumidityRange">65% – 85%</span></div>
+          </article>
+          <article class="card metric" style="--metric-color:#c8584b;--metric-tint:#fbe6e3">
+            <div class="metric-head"><div class="metric-label">EXCURSIONS TODAY</div></div>
+            <div class="metric-value"><span id="envExcursions">1</span></div>
+            <div class="metric-foot">Times outside target range</div>
+          </article>
+          <article class="card metric" style="--metric-color:#4f8b61;--metric-tint:#e7f1e5">
+            <div class="metric-head"><div class="metric-label">TIME IN RANGE</div></div>
+            <div class="metric-value"><span id="envInRange">98.4</span><small>%</small></div>
+            <div class="metric-foot">Last 24 hours</div>
+          </article>
+        </section>
+
+        <section class="main-grid">
+          <article class="card panel">
+            <div class="panel-title">
+              <div><h2>Temperature &amp; humidity history</h2><p>Add your own sensor log data to drive this chart</p></div>
+              <select class="select" id="envRange"><option>Last 24 hours</option><option>Last 7 days</option><option>Last 30 days</option></select>
+            </div>
+            <div class="chart-wrap">
+              <svg viewBox="0 0 720 250" role="img" aria-label="Environment history graph">
+                <g class="chart-grid"><line x1="43" y1="20" x2="700" y2="20"/><line x1="43" y1="67" x2="700" y2="67"/><line x1="43" y1="114" x2="700" y2="114"/><line x1="43" y1="161" x2="700" y2="161"/><line x1="43" y1="208" x2="700" y2="208"/></g>
+                <g class="chart-label"><text x="8" y="24">10°</text><text x="14" y="71">8°</text><text x="14" y="118">6°</text><text x="14" y="165">4°</text><text x="14" y="212">2°</text><text x="42" y="238">06:00</text><text x="203" y="238">10:00</text><text x="366" y="238">14:00</text><text x="529" y="238">18:00</text><text x="667" y="238">Now</text></g>
+                <path class="chart-area" d="M43 145 C78 132 96 150 123 141 S170 119 193 130 S234 162 263 151 S302 133 328 143 S369 174 398 153 S438 128 465 137 S506 152 532 130 S570 101 596 123 S636 157 658 149 S682 153 700 150 L700 208 L43 208Z"/>
+                <path class="chart-line" d="M43 145 C78 132 96 150 123 141 S170 119 193 130 S234 162 263 151 S302 133 328 143 S369 174 398 153 S438 128 465 137 S506 152 532 130 S570 101 596 123 S636 157 658 149 S682 153 700 150"/>
+                <circle class="chart-current" cx="700" cy="150" r="4.5"/>
+              </svg>
+            </div>
+            <div class="legend"><span><i></i>Temperature</span><span><i class="solar"></i>Safe storage zone</span></div>
+          </article>
+
+          <article class="card panel">
+            <div class="panel-title"><div><h2>Sensor probes</h2><p>Add one row per physical probe</p></div></div>
+            <div class="status-panel" style="margin-top:10px" id="probeList">
+              <div class="status-row"><div class="status-left"><div class="status-symbol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v11"/><path d="M8.5 13.4a5 5 0 1 0 7 0c-.9-.9-1.5-1.9-1.5-3.2V5a2 2 0 0 0-4 0v5.2c0 1.3-.6 2.3-1.5 3.2Z"/></svg></div><div><div class="status-label">Probe 1 · Back wall</div><div class="status-detail">Add reading + last-seen time</div></div></div><div class="badge">4.2°C</div></div>
+              <div class="status-row"><div class="status-left"><div class="status-symbol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v11"/><path d="M8.5 13.4a5 5 0 1 0 7 0c-.9-.9-1.5-1.9-1.5-3.2V5a2 2 0 0 0-4 0v5.2c0 1.3-.6 2.3-1.5 3.2Z"/></svg></div><div><div class="status-label">Probe 2 · Door side</div><div class="status-detail">Add reading + last-seen time</div></div></div><div class="badge">4.6°C</div></div>
+              <div class="status-row"><div class="status-left"><div class="status-symbol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.5S5.5 10.2 5.5 15a6.5 6.5 0 0 0 13 0c0-4.8-6.5-11.5-6.5-11.5Z"/></svg></div><div><div class="status-label">Probe 3 · Humidity</div><div class="status-detail">Add reading + last-seen time</div></div></div><div class="badge">78% RH</div></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="card panel">
+            <div class="panel-title"><div><h2>Threshold settings</h2><p>These drive when alerts fire — placeholder values</p></div></div>
+            <div class="threshold-grid">
+              <label class="threshold-field"><span>Min temperature (°C)</span><input type="number" value="2" step="0.1"></label>
+              <label class="threshold-field"><span>Max temperature (°C)</span><input type="number" value="8" step="0.1"></label>
+              <label class="threshold-field"><span>Min humidity (%)</span><input type="number" value="65"></label>
+              <label class="threshold-field"><span>Max humidity (%)</span><input type="number" value="85"></label>
+            </div>
+            <button class="save-btn" id="envSave">Save thresholds</button>
+          </article>
+        </section>
+      </div>
+
+      <!-- ================= ENERGY ================= -->
+      <div class="view" id="view-Energy" style="display:none">
+        <section class="metrics" aria-label="Energy summary">
+          <article class="card metric" style="--metric-color:#4f8b61;--metric-tint:#e7f1e5">
+            <div class="metric-head"><div class="metric-label">BATTERY LEVEL</div></div>
+            <div class="metric-value"><span id="enBattery">84</span><small>%</small></div>
+            <div class="metric-foot">Charging from solar</div>
+          </article>
+          <article class="card metric" style="--metric-color:#c28732;--metric-tint:#fff1d9">
+            <div class="metric-head"><div class="metric-label">SOLAR OUTPUT</div></div>
+            <div class="metric-value"><span id="enSolar">326</span><small>W</small></div>
+            <div class="metric-foot">Add panel array size</div>
+          </article>
+          <article class="card metric" style="--metric-color:#5e9fd4;--metric-tint:#e7f1f9">
+            <div class="metric-head"><div class="metric-label">GRID DRAW</div></div>
+            <div class="metric-value"><span id="enGrid">0</span><small>W</small></div>
+            <div class="metric-foot">Grid-independent right now</div>
+          </article>
+          <article class="card metric" style="--metric-color:#2b9c93;--metric-tint:#e1f2ee">
+            <div class="metric-head"><div class="metric-label">AUTONOMY</div></div>
+            <div class="metric-value"><span id="enAutonomy">31</span><small>hrs</small></div>
+            <div class="metric-foot">On battery, no sun</div>
+          </article>
+        </section>
+
+        <section class="main-grid">
+          <article class="card panel">
+            <div class="panel-title">
+              <div><h2>Generation vs. consumption</h2><p>Add your logged energy data to drive this chart</p></div>
+              <select class="select" id="enRange"><option>Today</option><option>Last 7 days</option><option>Last 30 days</option></select>
+            </div>
+            <div class="chart-wrap">
+              <svg viewBox="0 0 720 250" role="img" aria-label="Energy history graph">
+                <g class="chart-grid"><line x1="43" y1="20" x2="700" y2="20"/><line x1="43" y1="67" x2="700" y2="67"/><line x1="43" y1="114" x2="700" y2="114"/><line x1="43" y1="161" x2="700" y2="161"/><line x1="43" y1="208" x2="700" y2="208"/></g>
+                <g class="chart-label"><text x="8" y="24">600W</text><text x="10" y="71">450W</text><text x="10" y="118">300W</text><text x="10" y="165">150W</text><text x="20" y="212">0W</text><text x="42" y="238">06:00</text><text x="203" y="238">10:00</text><text x="366" y="238">14:00</text><text x="529" y="238">18:00</text><text x="667" y="238">Now</text></g>
+                <path class="chart-area" d="M43 195 C90 170 140 90 220 70 S360 60 450 95 S560 160 620 190 S680 205 700 208 L700 208 L43 208Z"/>
+                <path class="chart-line" d="M43 195 C90 170 140 90 220 70 S360 60 450 95 S560 160 620 190 S680 205 700 208" style="stroke:#c28732"/>
+                <circle class="chart-current" cx="700" cy="208" r="4.5" style="fill:#c28732"/>
+              </svg>
+            </div>
+            <div class="legend"><span><i class="solar"></i>Solar generation</span><span><i></i>Compressor draw</span></div>
+          </article>
+
+          <article class="card panel">
+            <div class="panel-title"><div><h2>Power source</h2><p>Where the unit's power is coming from</p></div></div>
+            <div class="power-mix">
+              <div class="power-row"><span>Solar</span><div class="power-bar"><span style="width:78%;background:var(--amber)"></span></div><strong>78%</strong></div>
+              <div class="power-row"><span>Battery</span><div class="power-bar"><span style="width:22%;background:#4f8b61"></span></div><strong>22%</strong></div>
+              <div class="power-row"><span>Grid</span><div class="power-bar"><span style="width:0%;background:#5e9fd4"></span></div><strong>0%</strong></div>
+            </div>
+            <div class="workspace-note" style="padding:14px 0 0;color:var(--muted)">Add real power-mix data to replace these placeholders.</div>
+          </article>
+        </section>
+      </div>
+
+      <!-- ================= ALERTS ================= -->
+      <div class="view" id="view-Alerts" style="display:none">
+        <section class="overview-strip">
+          <div class="strip-title">All alerts</div>
+          <div class="alert-filters">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="critical">Critical</button>
+            <button class="filter-chip" data-filter="warning">Warning</button>
+            <button class="filter-chip" data-filter="resolved">Resolved</button>
+          </div>
+        </section>
+        <section class="bottom-grid" style="grid-template-columns: minmax(0,1fr) minmax(0,.7fr)">
+          <article class="card panel">
+            <div class="panel-title"><div><h2>Alert log</h2><p>Add real alert history here</p></div></div>
+            <div class="alert-list" id="alertLog">
+              <div class="alert critical" data-status="critical"><div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 4 9 16H3L12 4Z"/><path d="M12 9v5M12 17h.01"/></svg></div><div class="alert-text"><strong>High-temperature alert resolved</strong><span>Temperature briefly reached 8.4°C at 05:42.</span></div><div class="alert-time">2h ago</div></div>
+              <div class="alert" data-status="warning"><div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="17" height="10" rx="2"/><path d="M21 10v4"/></svg></div><div class="alert-text"><strong>Battery was below 30%</strong><span>Solar charging restored the battery to a healthy level.</span></div><div class="alert-time">Yesterday</div></div>
+              <div class="alert good" data-status="resolved"><div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg></div><div class="alert-text"><strong>No active power failures</strong><span>Grid-independent operation is available.</span></div><div class="alert-time">All clear</div></div>
+              <div class="alert" data-status="warning"><div class="alert-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3.5S5.5 10.2 5.5 15a6.5 6.5 0 0 0 13 0c0-4.8-6.5-11.5-6.5-11.5Z"/></svg></div><div class="alert-text"><strong>Humidity trending high</strong><span>Add real detail text describing this event.</span></div><div class="alert-time">2 days ago</div></div>
+            </div>
+          </article>
+          <article class="card panel">
+            <div class="panel-title"><div><h2>Notify by</h2><p>Add real contact channels</p></div></div>
+            <div class="status-panel" style="margin-top:10px">
+              <div class="status-row"><div class="status-left"><div><div class="status-label">SMS</div><div class="status-detail">Add phone number</div></div></div><label class="toggle"><input type="checkbox" checked><span></span></label></div>
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Email</div><div class="status-detail">Add email address</div></div></div><label class="toggle"><input type="checkbox" checked><span></span></label></div>
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Push notification</div><div class="status-detail">App on operator's phone</div></div></div><label class="toggle"><input type="checkbox"><span></span></label></div>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <!-- ================= STORAGE ================= -->
+      <div class="view" id="view-Storage" style="display:none">
+        <section class="overview-strip">
+          <div class="strip-title">Storage zones</div>
+          <div class="unit-status"><span class="dot"></span> Add real capacity summary here</div>
+        </section>
+        <section class="metrics" aria-label="Storage zones" id="zoneGrid">
+          <article class="card metric" style="--metric-color:#2b9c93;--metric-tint:#e1f2ee">
+            <div class="metric-head"><div class="metric-label">ZONE A</div></div>
+            <div class="metric-value" style="font-size:20px">Add produce type</div>
+            <div class="metric-foot">Add quantity + fill level</div>
+          </article>
+          <article class="card metric" style="--metric-color:#5e9fd4;--metric-tint:#e7f1f9">
+            <div class="metric-head"><div class="metric-label">ZONE B</div></div>
+            <div class="metric-value" style="font-size:20px">Add produce type</div>
+            <div class="metric-foot">Add quantity + fill level</div>
+          </article>
+          <article class="card metric" style="--metric-color:#c28732;--metric-tint:#fff1d9">
+            <div class="metric-head"><div class="metric-label">ZONE C</div></div>
+            <div class="metric-value" style="font-size:20px">Add produce type</div>
+            <div class="metric-foot">Add quantity + fill level</div>
+          </article>
+          <article class="card metric" style="--metric-color:#4f8b61;--metric-tint:#e7f1e5">
+            <div class="metric-head"><div class="metric-label">ZONE D</div></div>
+            <div class="metric-value" style="font-size:20px">Empty</div>
+            <div class="metric-foot">Available capacity</div>
+          </article>
+        </section>
+        <section class="main-grid" style="grid-template-columns:1fr">
+          <article class="card panel">
+            <div class="panel-title"><div><h2>Produce inventory</h2><p>Add one row per batch stored</p></div><div style="color:var(--forest-2);font-size:11px;font-weight:750;cursor:pointer">+ Add batch</div></div>
+            <table class="data-table" id="inventoryTable">
+              <thead><tr><th>Item</th><th>Zone</th><th>Quantity</th><th>Stored on</th><th>Est. shelf life</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Add produce name</td><td>Zone A</td><td>—</td><td>—</td><td>—</td><td><span class="badge">Fresh</span></td></tr>
+                <tr><td>Add produce name</td><td>Zone B</td><td>—</td><td>—</td><td>—</td><td><span class="badge off">Watch</span></td></tr>
+                <tr><td>Add produce name</td><td>Zone C</td><td>—</td><td>—</td><td>—</td><td><span class="badge">Fresh</span></td></tr>
+              </tbody>
+            </table>
+          </article>
+        </section>
+      </div>
+
+      <!-- ================= SYSTEM ================= -->
+      <div class="view" id="view-System" style="display:none">
+        <section class="main-grid">
+          <article class="card panel">
+            <div class="panel-title"><div><h2>Device information</h2><p>Add real unit details</p></div><div class="badge">ONLINE</div></div>
+            <div class="status-panel" style="margin-top:10px">
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Unit ID</div><div class="status-detail">Add unit ID</div></div></div><div>HC-004</div></div>
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Location</div><div class="status-detail">Add farm / GPS location</div></div></div><div>Nandgaon Farm</div></div>
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Firmware version</div><div class="status-detail">Add current firmware</div></div></div><div>v0.8</div></div>
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Installed on</div><div class="status-detail">Add install date</div></div></div><div>—</div></div>
+            </div>
+          </article>
+          <article class="card panel">
+            <div class="panel-title"><div><h2>Connectivity</h2><p>Add real network status</p></div></div>
+            <div class="status-panel" style="margin-top:10px">
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Network</div><div class="status-detail">Add network type (WiFi / 4G / LoRa)</div></div></div><div class="badge">Connected</div></div>
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Signal strength</div><div class="status-detail">Add signal reading</div></div></div><div>—</div></div>
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Local cache</div><div class="status-detail">Readings stored offline</div></div></div><div>Enabled</div></div>
+            </div>
+          </article>
+        </section>
+        <section class="bottom-grid">
+          <article class="card panel">
+            <div class="panel-title"><div><h2>Sensor &amp; hardware status</h2><p>Add one row per component</p></div></div>
+            <div class="status-panel" style="margin-top:10px">
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Temperature probe</div><div class="status-detail">Add last-seen time</div></div></div><div class="badge">OK</div></div>
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Humidity sensor</div><div class="status-detail">Add last-seen time</div></div></div><div class="badge">OK</div></div>
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Compressor</div><div class="status-detail">Add runtime hours</div></div></div><div class="badge">OK</div></div>
+              <div class="status-row"><div class="status-left"><div><div class="status-label">Solar controller</div><div class="status-detail">Add last-seen time</div></div></div><div class="badge">OK</div></div>
+            </div>
+          </article>
+          <article class="card panel">
+            <div class="panel-title"><div><h2>Maintenance log</h2><p>Add real service history</p></div></div>
+            <div class="future">
+              <div class="future-item"><div><strong>Add maintenance entry</strong><span>Add what was done and when</span></div><div class="future-tag">—</div></div>
+              <div class="future-item"><div><strong>Add maintenance entry</strong><span>Add what was done and when</span></div><div class="future-tag">—</div></div>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <div class="footer-note"><span>Telemetry is simulated for demonstration purposes.</span><span><strong>ZeroRot v0.8</strong> · Built for resilient farms</span></div>
+    </main>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let tick = 0;
+    function updateTelemetry() {
+      tick++;
+      const temp = 4.2 + Math.sin(tick / 3) * .18;
+      const humidity = Math.round(78 + Math.sin(tick / 4) * 2);
+      const battery = Math.min(99, 84 + Math.floor(tick / 8));
+      const solar = Math.round(326 + Math.sin(tick / 2) * 16);
+      $('temp').textContent = temp.toFixed(1);
+      $('humidity').textContent = humidity;
+      $('battery').textContent = battery;
+      $('solar').textContent = solar;
+      $('updated').textContent = 'just now';
+      $('syncText').textContent = tick % 10 === 0 ? 'Syncing…' : 'Up to date';
+      $('syncBar').style.width = tick % 10 === 0 ? '66%' : '100%';
+      if (tick % 10 === 0) setTimeout(() => { $('syncText').textContent = 'Up to date'; $('syncBar').style.width = '100%'; }, 1800);
+    }
+    setInterval(updateTelemetry, 3200);
+
+    const pageMeta = {
+      Overview:    { eyebrow: 'Good morning, Nandgaon', title: 'Cold room overview', subline: 'A quiet, healthy day for your produce.' },
+      Environment: { eyebrow: 'Environment', title: 'Temperature & humidity', subline: 'Sensor readings and thresholds for this unit.' },
+      Energy:      { eyebrow: 'Energy', title: 'Power & battery', subline: 'Solar, battery and grid usage for this unit.' },
+      Alerts:      { eyebrow: 'Alerts', title: 'Alert log', subline: 'Everything that has needed attention.' },
+      Storage:     { eyebrow: 'Storage', title: 'Storage zones', subline: 'What is stored where, and for how long.' },
+      System:      { eyebrow: 'System', title: 'Device & connectivity', subline: 'Hardware, firmware and network status.' },
+    };
+
+    function showView(name) {
+      document.querySelectorAll('.view').forEach((v) => { v.style.display = 'none'; });
+      const target = $('view-' + name);
+      if (target) target.style.display = 'block';
+      const meta = pageMeta[name];
+      if (meta) {
+        $('pageEyebrow').textContent = meta.eyebrow;
+        $('pageTitle').textContent = meta.title;
+        $('pageSubline').textContent = meta.subline;
+      }
+    }
+
+    document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('click', () => {
+      document.querySelector('.nav-item.active').classList.remove('active');
+      item.classList.add('active');
+      showView(item.dataset.view);
+    }));
+
+    $('range').addEventListener('change', (e) => {
+      $('viewTitle').textContent = e.target.value === 'Last 24 hours' ? 'Live conditions' : 'Historical conditions';
+    });
+
+    const envSave = $('envSave');
+    if (envSave) envSave.addEventListener('click', () => {
+      envSave.textContent = 'Saved';
+      setTimeout(() => { envSave.textContent = 'Save thresholds'; }, 1500);
+    });
+
+    document.querySelectorAll('.filter-chip').forEach((chip) => chip.addEventListener('click', () => {
+      document.querySelector('.filter-chip.active').classList.remove('active');
+      chip.classList.add('active');
+      const filter = chip.dataset.filter;
+      document.querySelectorAll('#alertLog .alert').forEach((row) => {
+        row.style.display = (filter === 'all' || row.dataset.status === filter) ? 'flex' : 'none';
+      });
+    }));
+
+    showView('Overview');
+  </script>
+</body>
+</html>
