@@ -56,6 +56,11 @@ ZeroRot addresses this problem by providing a compact and modular cold-storage s
 * Connectivity/offline status
 * System fault monitoring
 
+### Model Render
+<img width="1291" height="1055" alt="088700f0-8740-4c9c-9c5a-801203abd3a1" src="https://github.com/user-attachments/assets/1a790d0c-a8a3-4548-8ec3-dbf6dbbe30a9" />
+<img width="1600" height="900" alt="18f00e16-6e27-44ba-9cb8-a4ae3d66aeff" src="https://github.com/user-attachments/assets/b9999a42-02c9-41d0-b44f-0c61d2472f7b" />
+<img width="1600" height="900" alt="78a93a24-3db2-4a6d-a3df-0d0f32cb071b" src="https://github.com/user-attachments/assets/9e52db77-014c-4ac2-988e-79e7ab3b704d" />
+
 ### Offline Operation
 
 The system is designed with an offline-first approach. Sensor data can be temporarily stored locally when internet connectivity is unavailable and synchronized with the backend when connectivity is restored.
@@ -74,6 +79,8 @@ The ZeroRot dashboard provides a centralized interface for monitoring:
 * Storage status
 * System connectivity
 
+<img width="2879" height="1557" alt="image" src="https://github.com/user-attachments/assets/bcbbec3a-eccf-404b-8db3-f6744e293183" />
+
 ---
 
 ## System Architecture
@@ -84,14 +91,14 @@ Temperature / Humidity Sensors
              v
            ESP32
              |
-      +------+------+
+      +------+------+--------------------> On Device Display
       |             |
       v             v
 Cooling Control   Data Processing
       |             |
       v             v
- Compressor      Wi-Fi / IoT
-                    |
+   Peltier       Wi-Fi / IoT
+    Module          |
                     v
              Supabase Backend
                     |
